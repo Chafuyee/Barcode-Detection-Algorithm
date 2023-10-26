@@ -3,6 +3,10 @@ import math
 import sys
 from pathlib import Path
 
+#Extensions for the added functionality
+import numpy as np
+from pyzbar import pyzbar
+
 # Matplotlib will need to be installed if it isn't already. This is the only package allowed for this base part of the 
 # assignment.
 from matplotlib import pyplot
@@ -308,6 +312,11 @@ def computeConnectedComponentLabeling(pixel_array, image_width, image_height):
 
     return (component, a_dict)
 
+def computeGreyscaleBarcode(pixel_array, image_width, image_height, min_x, max_x, min_y, max_y):
+    height_array = pixel_array[min_y:max_y]
+    width_array = [col[min_x:max_x] for col in height_array]
+    return width_array
+
 
 # This is our code skeleton that performs the barcode detection.
 # Feel free to try it on your own images of barcodes, but keep in mind that with our algorithm developed in this assignment,
@@ -378,7 +387,8 @@ def main():
     max_x = 0
     min_y = image_height - 1
     max_y = 0
-
+    
+    print(finalDict)
     for label in finalDict:
         for y in range(len(finalImage)):
             for x in range(len(finalImage[y])):
@@ -400,12 +410,28 @@ def main():
         min_y = image_height - 1
         max_y = 0
 
-    px_array = px_array_r
-
     adjusted_min_x = round(min_x - (min_x / 80))
     adjusted_max_x = round(max_x + (max_x / 80))
     adjusted_min_y = round(min_y - (min_y / 80))
     adjusted_max_y = round(max_y + (max_y / 80))
+
+    barcode_scan = computeGreyscaleBarcode(greyscaleArrayPost, image_width, image_height, min_x, max_x, min_y, max_y)
+    rgb_width = len(barcode_scan[0])
+    rgb_height = len(barcode_scan)
+    rgb_image = np.zeros((rgb_height, rgb_width, 3), dtype=np.uint8)
+    rgb_image[:, :, 0] = barcode_scan
+    rgb_image[:, :, 1] = barcode_scan
+    rgb_image[:, :, 2] = barcode_scan
+
+    barcodes = pyzbar.decode(rgb_image)
+
+    try:
+        print("The code for this barcode is", barcodes[0].data, "and the barcode type is", barcodes[0].type)
+    except:
+        print("Data cannot be extracted for this barcode.")
+
+    px_array = px_array_r
+
 
     # Compute a dummy bounding box centered in the middle of the input image, and with as size of half of width and height
     # Change these values based on the detected barcode region from your algorithm
